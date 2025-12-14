@@ -1,6 +1,12 @@
 "use client";
 
 import { Search, Bell, User } from "lucide-react";
+import {
+  motion,
+  AnimatePresence,
+  Variants,
+  useAnimationControls,
+} from "framer-motion";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +25,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/* ------------------ Variants (Typed) ------------------ */
+
+const topbarVariants: Variants = {
+  hidden: {
+    y: -20,
+    opacity: 0,
+  },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.35,
+      ease: "easeOut",
+    },
+  },
+};
+
+const badgeVariants: Variants = {
+  hidden: { scale: 0 },
+  visible: {
+    scale: 1,
+    transition: { type: "spring", stiffness: 500 },
+  },
+};
+
 export default function TopBar() {
   const router = useRouter();
   const { signOut } = useClerk();
@@ -26,64 +57,100 @@ export default function TopBar() {
 
   const unreadNotifications = useUnreadNotifications();
   const unreadNotificationsCount = unreadNotifications.length;
+
   const avatarUrl = useAppStore((state) => state.avatarUrl);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
 
-  const photo = avatarUrl || null;
+  const photo = avatarUrl || user?.imageUrl || null;
+
+  /* 🔑 Animation controls for search focus */
+  const searchControls = useAnimationControls();
 
   return (
-    <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between sticky top-0 z-10">
-      {/* Search Bar */}
-      <div className="flex-1 max-w-xl">
+    <motion.header
+      variants={topbarVariants}
+      initial="hidden"
+      animate="visible"
+      className="h-16 bg-card border-b border-border px-6 flex items-center justify-between sticky top-0 z-10"
+    >
+      {/* ---------------- Search ---------------- */}
+      <motion.div
+        className="flex-1 max-w-xl"
+        animate={searchControls}
+        transition={{ duration: 0.2 }}
+      >
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 
           <Input
             placeholder="Search documents, entities, or ask AI..."
             className="pl-10 bg-background"
+            onFocus={() => searchControls.start({ scale: 1.02 })}
+            onBlur={() => searchControls.start({ scale: 1 })}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               router.push("/app/searchpage");
             }}
           />
         </div>
-      </div>
+      </motion.div>
 
-      {/* Right Icons */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          onClick={() => router.push("/app/notifications")}
-        >
-          <Bell className="w-5 h-5" />
-          {unreadNotificationsCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs"
-            >
-              {unreadNotificationsCount}
-            </Badge>
-          )}
-        </Button>
+      {/* ---------------- Right Actions ---------------- */}
+      <div className="flex items-center gap-3 ml-4">
+        {/* Notifications */}
+        <motion.div whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => router.push("/app/notifications")}
+          >
+            <Bell className="w-5 h-5" />
+
+            <AnimatePresence>
+              {unreadNotificationsCount > 0 && (
+                <motion.div
+                  variants={badgeVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className="absolute -top-1 -right-1"
+                >
+                  <Badge
+                    variant="destructive"
+                    className="w-5 h-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadNotificationsCount}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Button>
+        </motion.div>
 
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full p-0">
-              {photo ? (
-                <img
-                  src={photo}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full p-0"
+              >
+                {photo ? (
+                  <motion.img
+                    src={photo}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover"
+                    whileHover={{ rotate: 3 }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+              </Button>
+            </motion.div>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-56">
@@ -112,6 +179,6 @@ export default function TopBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </header>
+    </motion.header>
   );
 }

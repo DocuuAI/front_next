@@ -1,6 +1,8 @@
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import ClientShell from "./ClientShell";
+import MotionProvider from "./providers/MotionProvider";
+import PageTransition from "./providers/PageTransition";
 
 export const metadata = {
   title: "Documind",
@@ -13,7 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ClerkProvider>
           <ClientShell>
-            {children}
+            <MotionProvider>
+              <PageTransition>
+                {children}
+                </PageTransition>
+            </MotionProvider>
           </ClientShell>
         </ClerkProvider>
       </body>

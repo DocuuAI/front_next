@@ -47,6 +47,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.560.0",
+    "motion": "^12.23.26",
     "next": "16.0.9",
     "react": "19.2.1",
     "react-day-picker": "^9.12.0",
