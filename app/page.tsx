@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { motion, useMotionValue, useMotionTemplate, useScroll, useTransform } from "framer-motion";
 import { Variants } from "framer-motion";
+import { FeatureCards } from "@/landing/FeatureCards";
+import { FoundersMessage } from "@/landing/SignatureSection";
+import { ScrollDownIndicator } from "./providers/ScrollIndicator";
 
 export const fadeUp: Variants = {
   hidden: {
@@ -35,7 +38,7 @@ export default function Homepage() {
 
   /* ---------------- Scroll Parallax ---------------- */
   const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 300], [0, -80]);
+  const heroY = useTransform(scrollY, [0, 400], [0, -60]);
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.7]);
 
   return (
@@ -104,15 +107,16 @@ export default function Homepage() {
       </motion.nav>
 
       {/* HERO */}
-      <motion.section
-        style={{ y: heroY, opacity: heroOpacity }}
-        className="px-6 md:px-20 mt-20 text-center"
-      >
+      <div className="pt-8 mt-20">
+        <motion.section
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="px-6 md:px-20 text-center"
+        >
         <motion.h2
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-4xl md:text-6xl font-extrabold leading-tight mb-6"
+          className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 tracking-tight"
         >
           Automate Your Documents
           <br />
@@ -153,41 +157,13 @@ export default function Homepage() {
           </Link>
         </motion.div>
       </motion.section>
+      </div>
 
       {/* FEATURES */}
-      <section className="mt-28 px-6 md:px-20">
-        <div className="grid md:grid-cols-3 gap-10">
-          {[
-            {
-              title: "📄 Auto Document Reading",
-              desc: "Extract names, dates, amounts, and key fields instantly.",
-            },
-            {
-              title: "📅 Compliance Alerts",
-              desc: "Never miss filings or renewals with smart reminders.",
-            },
-            {
-              title: "📦 Unified Document Hub",
-              desc: "Searchable, categorized, and secure document storage.",
-            },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              custom={i}
-              whileHover={{ y: -8, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="p-6 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10"
-            >
-              <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-              <p className="text-gray-300">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      <div className="">
+      <FeatureCards />
+    </div>
+
 
       {/* CTA */}
       <motion.section
@@ -195,7 +171,7 @@ export default function Homepage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="mt-32 text-center px-6"
+        className="mt-10 text-center px-6"
       >
         <h3 className="text-3xl md:text-4xl font-bold mb-4">
           Ready to simplify compliance?
@@ -210,6 +186,11 @@ export default function Homepage() {
           Get Started Free
         </Link>
       </motion.section>
+      <ScrollDownIndicator />
+      <div className="mt-40">
+        <FoundersMessage />
+      </div>
+
 
       {/* FOOTER */}
       <motion.footer
