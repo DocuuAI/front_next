@@ -1,26 +1,47 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { auth } from "@clerk/nextjs/server";
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const { clerk_id } = await req.json();
+    // 1️⃣ Get Clerk token (App Router = await)
+    const authData = await auth();
+    const token = await authData.getToken();
 
-    if (!clerk_id) {
-      return NextResponse.json({ error: "Missing clerk_id" }, { status: 400 });
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const { data, error } = await supabase
-      .from("documents")
-      .select("id, file_name, file_url, size_mb, document_type")
-      .eq("clerk_id", clerk_id)
-      .order("id", { ascending: false });
+    // 2️⃣ Call backend
+    const backendRes = await fetch(
+      "http://localhost:4000/documents/list",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    if (error) throw error;
+    const data = await backendRes.json();
 
-    return NextResponse.json({ documents: data });
+    if (!backendRes.ok) {
+      return NextResponse.json(
+        { error: data.error || "Failed to fetch documents" },
+        { status: backendRes.status }
+      );
+    }
+
+    // 3️⃣ Return backend response
+    return NextResponse.json(data);
+
   } catch (err: any) {
+    console.error("Document list error:", err);
     return NextResponse.json(
-      { error: err.message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

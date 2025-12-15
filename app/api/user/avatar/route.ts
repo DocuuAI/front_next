@@ -1,35 +1,52 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
-  const formData = await req.formData();
-  const file = formData.get("file") as File;
-  const clerkId = formData.get("clerkId") as string;
+  try {
+    // 1️⃣ Get Clerk JWT (App Router → await)
+    const authData = await auth();
+    const token = await authData.getToken();
 
-  if (!file || !clerkId) {
-    return NextResponse.json({ error: "Missing file or user ID" }, { status: 400 });
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // 2️⃣ Get incoming file
+    const formData = await req.formData();
+
+    // 3️⃣ Forward to backend
+    const backendRes = await fetch(
+      "http://localhost:4000/users/avatar",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // ❌ DO NOT set Content-Type manually for FormData
+        },
+        body: formData,
+      }
+    );
+
+    const data = await backendRes.json();
+
+    if (!backendRes.ok) {
+      return NextResponse.json(
+        { error: data.error || "Avatar upload failed" },
+        { status: backendRes.status }
+      );
+    }
+
+    // 4️⃣ Return backend response
+    return NextResponse.json(data);
+
+  } catch (err) {
+    console.error("Avatar upload error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${clerkId}.${fileExt}`;
-  const filePath = `avatars/${fileName}`;
-
-  // Upload file
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(filePath, file, { upsert: true, contentType: file.type });
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
-
-  const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-  const imageUrl = data.publicUrl;
-
-  // Update user table
-  const { error: dbError } = await supabase
-    .from("users")
-    .update({ avatar_url: imageUrl })
-    .eq("clerk_id", clerkId);
-
-  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-
-  return NextResponse.json({ imageUrl });
 }

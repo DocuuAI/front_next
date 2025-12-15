@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
   try {
-    // ✅ MUST await auth()
     const authData = await auth();
     const token = await authData.getToken();
 
@@ -14,16 +13,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const formData = await req.formData();
+    const body = await req.json();
 
     const backendRes = await fetch(
-      "http://localhost:4000/documents/upload",
+      "http://localhost:4000/users/sync",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify(body),
       }
     );
 
@@ -31,17 +31,16 @@ export async function POST(req: Request) {
 
     if (!backendRes.ok) {
       return NextResponse.json(
-        { error: data.error || "Upload failed" },
+        { error: data.error || "Sync failed" },
         { status: backendRes.status }
       );
     }
 
     return NextResponse.json(data);
-
   } catch (err) {
-    console.error(err);
+    console.error("Sync error:", err);
     return NextResponse.json(
-      { error: "Internal error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

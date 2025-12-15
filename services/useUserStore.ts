@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { supabase } from "@/lib/supabaseClient";
 
 interface UserState {
   profile: any | null;
@@ -12,28 +11,45 @@ export const useUserStore = create<UserState>((set) => ({
   syncing: false,
 
   syncUser: async (clerkUser) => {
-    set({ syncing: true });
+    try {
+      set({ syncing: true });
 
-    const email =
-      clerkUser.emailAddresses?.[0]?.emailAddress || null;
+      const email =
+        clerkUser.emailAddresses?.[0]?.emailAddress || null;
 
-    const data = {
-      clerk_id: clerkUser.id,
-      first_name: clerkUser.firstName,
-      middle_name: clerkUser.middleName || null,
-      last_name: clerkUser.lastName,
-      email,
-      phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
-    };
+      // Data we send to backend (NO clerk_id)
+      const payload = {
+        first_name: clerkUser.firstName,
+        middle_name: clerkUser.middleName || null,
+        last_name: clerkUser.lastName,
+        email,
+        phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
+      };
 
-    const { data: upserted, error } = await supabase
-      .from("users")
-      .upsert(data, { onConflict: "clerk_id" })
-      .select()
-      .single();
+      const res = await fetch("/api/user/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (error) console.error("User sync error:", error);
+      const data = await res.json();
 
-    set({ profile: upserted || null, syncing: false });
+      if (!res.ok) {
+        console.error("User sync failed:", data.error);
+        set({ syncing: false });
+        return;
+      }
+
+      set({
+        profile: data.profile,
+        syncing: false,
+      });
+
+    } catch (err) {
+      console.error("User sync error:", err);
+      set({ syncing: false });
+    }
   },
 }));
