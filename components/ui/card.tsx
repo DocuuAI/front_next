@@ -16,7 +16,11 @@ import { cn } from "@/lib/utils";
 interface Props {
   children: React.ReactNode;
 }
-const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<"div">>(
+type CardProps = {
+  children?: React.ReactNode;
+} & HTMLMotionProps<"div">;
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, children, ...props }, ref) => {
     const x = useMotionValue(0);
     const y = useMotionValue(0);

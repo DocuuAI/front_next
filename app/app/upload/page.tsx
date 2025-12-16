@@ -90,8 +90,8 @@ export default function UploadPage() {
 
       {/* Dropzone / Upload Zone */}
       {!uploading && (
+        <div {...getRootProps()}>
         <Card
-          {...getRootProps()}
           className={`p-10 border-2 border-dashed cursor-pointer text-center transition ${
             isDragActive ? "scale-105" : ""
           }`}
@@ -106,6 +106,7 @@ export default function UploadPage() {
             Supports PDF, JPG, PNG (Max 10MB)
           </p>
         </Card>
+        </div>
       )}
 
       {/* Uploading Indicator */}

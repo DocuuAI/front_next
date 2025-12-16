@@ -16,9 +16,9 @@ export async function POST() {
 
     // 2️⃣ Call backend
     const backendRes = await fetch(
-      "https://docuback-pw5d.onrender.com/documents/list",
+      "https://docuback-pw5d.onrender.com/documents",
       {
-        method: "POST",
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

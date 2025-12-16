@@ -2,14 +2,12 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
 import {
   Document,
   Entity,
   Deadline,
   Notification,
   AISuggestion,
-  mockDocuments,
   mockEntities,
   mockDeadlines,
   mockNotifications,
@@ -21,12 +19,13 @@ interface AppStore {
   entities: Entity[];
   deadlines: Deadline[];
   notifications: Notification[];
-  unreadNotifications: Notification[];  // 👈 MEMOIZED
+  unreadNotifications: Notification[];
   aiSuggestions: AISuggestion[];
 
   avatarUrl: string | null;
   searchQuery: string;
 
+  setDocuments: (docs: Document[]) => void; // ✅ ADD
   setSearchQuery: (query: string) => void;
 
   addDocument: (doc: Document) => void;
@@ -37,27 +36,30 @@ interface AppStore {
   updateEntity: (id: string, updates: Partial<Entity>) => void;
 
   markNotificationRead: (id: string) => void;
-
   setAvatarUrl: (url: string | null) => void;
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
-    (set, get) => ({
-      documents: mockDocuments,
+    (set) => ({
+      documents: [], // ❌ REMOVE mockDocuments
       entities: mockEntities,
       deadlines: mockDeadlines,
       notifications: mockNotifications,
-      unreadNotifications: mockNotifications.filter((n) => !n.read), // 👈 initial memo
+      unreadNotifications: mockNotifications.filter((n) => !n.read),
       aiSuggestions: mockAISuggestions,
 
       avatarUrl: null,
       searchQuery: "",
 
+      setDocuments: (docs) => set({ documents: docs }), // ✅ ADD
+
       setSearchQuery: (query) => set({ searchQuery: query }),
 
       addDocument: (doc) =>
-        set((state) => ({ documents: [doc, ...state.documents] })),
+        set((state) => ({
+          documents: [doc, ...state.documents],
+        })),
 
       updateDocument: (id, updates) =>
         set((state) => ({
@@ -81,16 +83,14 @@ export const useAppStore = create<AppStore>()(
           ),
         })),
 
-      // IMPORTANT: Update both notifications AND memoized unreadNotifications
       markNotificationRead: (id) =>
         set((state) => {
           const notifications = state.notifications.map((n) =>
             n.id === id ? { ...n, read: true } : n
           );
-
           return {
             notifications,
-            unreadNotifications: notifications.filter((n) => !n.read), // 👈 memo updated
+            unreadNotifications: notifications.filter((n) => !n.read),
           };
         }),
 
@@ -104,10 +104,6 @@ export const useAppStore = create<AppStore>()(
     }
   )
 );
-
-// -----------------------------------------------
-// ✓ SAFE SELECTOR: returns stable reference
-// -----------------------------------------------
 
 export const useUnreadNotifications = () =>
   useAppStore((state) => state.unreadNotifications);

@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { Grid, List, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,29 +25,48 @@ export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || doc.type === filterType;
+  // ✅ SAFE FILTER
+  const filteredDocuments = documents.filter((doc) => {
+    const name = doc.file_name ?? '';
+    const type = doc.file_type ?? '';
+
+    const matchesSearch = name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    const matchesType =
+      filterType === 'all' || type === filterType;
+
     return matchesSearch && matchesType;
   });
 
-  const documentTypes = ['all', ...Array.from(new Set(documents.map(d => d.type)))];
+  // ✅ SAFE TYPES LIST
+  const documentTypes = [
+    'all',
+    ...Array.from(
+      new Set(documents.map((d) => d.file_type).filter(Boolean))
+    ),
+  ];
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Document Library</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Document Library
+          </h1>
           <p className="text-muted-foreground">
             {filteredDocuments.length} documents found
           </p>
         </div>
+
         <Link href="/upload">
-        <Button>Upload Document</Button>
+          <Button>Upload Document</Button>
         </Link>
       </div>
 
-      {/* Filters and Search */}
+      {/* Search + Filters */}
       <Card className="p-4 bg-card border-border">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -56,13 +76,13 @@ export default function Library() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Document Type" />
             </SelectTrigger>
             <SelectContent>
-              {documentTypes.map(type => (
+              {documentTypes.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type === 'all' ? 'All Types' : type}
                 </SelectItem>
@@ -89,7 +109,7 @@ export default function Library() {
         </div>
       </Card>
 
-      {/* Document Categories */}
+      {/* Category Badges */}
       <div className="flex flex-wrap gap-2">
         <Badge
           variant={filterType === 'all' ? 'default' : 'outline'}
@@ -98,19 +118,23 @@ export default function Library() {
         >
           All ({documents.length})
         </Badge>
-        {Array.from(new Set(documents.map(d => d.type))).map(type => (
-          <Badge
-            key={type}
-            variant={filterType === type ? 'default' : 'outline'}
-            className="cursor-pointer"
-            onClick={() => setFilterType(type)}
-          >
-            {type} ({documents.filter(d => d.type === type).length})
-          </Badge>
-        ))}
+
+        {documentTypes
+          .filter((t) => t !== 'all')
+          .map((type) => (
+            <Badge
+              key={type}
+              variant={filterType === type ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setFilterType(type)}
+            >
+              {type} (
+              {documents.filter((d) => d.file_type === type).length})
+            </Badge>
+          ))}
       </div>
 
-      {/* Documents Grid/List */}
+      {/* Documents */}
       {filteredDocuments.length === 0 ? (
         <Card className="p-12 bg-card border-border text-center">
           <Filter className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -122,13 +146,19 @@ export default function Library() {
           </p>
         </Card>
       ) : (
-        <div className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-            : 'space-y-3'
-        }>
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+              : 'space-y-3'
+          }
+        >
           {filteredDocuments.map((doc) => (
-            <DocumentCard key={doc.id} document={doc} onDelete={deleteDocument} />
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              onDelete={deleteDocument}
+            />
           ))}
         </div>
       )}

@@ -1,17 +1,11 @@
-"use client";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
 
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-
-/* ----------------------------------
-   Button Variants (unchanged)
----------------------------------- */
+import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -38,56 +32,26 @@ const buttonVariants = cva(
       size: "default",
     },
   }
-);
-
-/* ----------------------------------
-   Types
----------------------------------- */
+)
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+  asChild?: boolean
 }
-
-/* ----------------------------------
-   Magnetic Button
----------------------------------- */
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : motion.button;
-
-    function onMouseMove(e: React.MouseEvent<HTMLButtonElement>) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-
-      e.currentTarget.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
-    }
-
-    function onMouseLeave(e: React.MouseEvent<HTMLButtonElement>) {
-      e.currentTarget.style.transform = "translate(0px, 0px)";
-    }
-
+    const Comp = asChild ? Slot : "button"
     return (
       <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        className={cn(
-          buttonVariants({ variant, size }),
-          "transition-transform duration-200 will-change-transform",
-          className
-        )}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
         {...props}
       />
-    );
+    )
   }
-);
+)
+Button.displayName = "Button"
 
-Button.displayName = "Button";
-
-export { Button, buttonVariants };
+export { Button, buttonVariants }
