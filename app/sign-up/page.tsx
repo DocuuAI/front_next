@@ -1,5 +1,9 @@
 import { SignUp } from "@clerk/nextjs";
 
 export default function SignUpPage() {
-  return <SignUp routing="path" path="/sign-up" />;
+  return (
+      <div className="min-h-screen flex items-center justify-center">
+        <SignUp routing="path" path="/sign-up" />
+      </div>
+    );
 }
