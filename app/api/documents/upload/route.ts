@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
 
     const backendRes = await fetch(
-      "http://localhost:4000/documents/upload",
+      "https://docuback-pw5d.onrender.com/documents/upload",
       {
         method: "POST",
         headers: {

@@ -16,7 +16,7 @@ export async function GET() {
 
     // 2️⃣ Call backend
     const backendRes = await fetch(
-      "http://localhost:4000/users/profile",
+      "https://docuback-pw5d.onrender.com/users/profile",
       {
         method: "GET",
         headers: {

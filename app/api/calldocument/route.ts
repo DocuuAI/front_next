@@ -16,7 +16,7 @@ export async function POST() {
 
     // 2️⃣ Call backend
     const backendRes = await fetch(
-      "http://localhost:4000/documents/list",
+      "https://docuback-pw5d.onrender.com/documents/list",
       {
         method: "POST",
         headers: {
