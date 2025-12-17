@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { useAppStore } from "@/contexts/AppContext";
 
 export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
@@ -71,9 +72,10 @@ export default function UploadPage() {
 
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
+      addDocument(data.document); // ✅ instantly updates Library
       toast.success("Document uploaded successfully!");
       setSelectedFile(null);
-
+      router.push("/app/library"); // optional but recommended
       // Redirect to document details page (optional)
       // router.push(`/documents/${data.document.id}`);
     } catch (err: any) {
@@ -83,6 +85,8 @@ export default function UploadPage() {
       setUploading(false);
     }
   };
+
+  const addDocument = useAppStore((s) => s.addDocument);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">

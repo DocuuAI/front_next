@@ -30,21 +30,21 @@ export default function Library() {
     const name = doc.file_name ?? '';
     const type = doc.file_type ?? '';
 
-    const matchesSearch = name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
-    const matchesType =
-      filterType === 'all' || type === filterType;
-
-    return matchesSearch && matchesType;
+    return (
+      name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (filterType === 'all' || type === filterType)
+    );
   });
 
-  // ✅ SAFE TYPES LIST
-  const documentTypes = [
+  // ✅ SAFE NON-NULL TYPES
+  const documentTypes: string[] = [
     'all',
     ...Array.from(
-      new Set(documents.map((d) => d.file_type).filter(Boolean))
+      new Set(
+        documents
+          .map((d) => d.file_type)
+          .filter((t): t is string => typeof t === 'string')
+      )
     ),
   ];
 
@@ -53,29 +53,25 @@ export default function Library() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            Document Library
-          </h1>
+          <h1 className="text-2xl font-bold mb-2">Document Library</h1>
           <p className="text-muted-foreground">
             {filteredDocuments.length} documents found
           </p>
         </div>
 
-        <Link href="/upload">
+        <Link href="/app/upload">
           <Button>Upload Document</Button>
         </Link>
       </div>
 
       {/* Search + Filters */}
-      <Card className="p-4 bg-card border-border">
+      <Card className="p-4">
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+          <Input
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
 
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-full md:w-48">
@@ -92,15 +88,15 @@ export default function Library() {
 
           <div className="flex gap-2">
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="icon"
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
               onClick={() => setViewMode('grid')}
             >
               <Grid className="w-4 h-4" />
             </Button>
             <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
               size="icon"
+              variant={viewMode === 'list' ? 'default' : 'outline'}
               onClick={() => setViewMode('list')}
             >
               <List className="w-4 h-4" />
@@ -111,36 +107,23 @@ export default function Library() {
 
       {/* Category Badges */}
       <div className="flex flex-wrap gap-2">
-        <Badge
-          variant={filterType === 'all' ? 'default' : 'outline'}
-          className="cursor-pointer"
-          onClick={() => setFilterType('all')}
-        >
-          All ({documents.length})
-        </Badge>
-
-        {documentTypes
-          .filter((t) => t !== 'all')
-          .map((type) => (
-            <Badge
-              key={type}
-              variant={filterType === type ? 'default' : 'outline'}
-              className="cursor-pointer"
-              onClick={() => setFilterType(type)}
-            >
-              {type} (
-              {documents.filter((d) => d.file_type === type).length})
-            </Badge>
-          ))}
+        {documentTypes.map((type) => (
+          <Badge
+            key={type}
+            variant={filterType === type ? 'default' : 'outline'}
+            className="cursor-pointer"
+            onClick={() => setFilterType(type)}
+          >
+            {type === 'all' ? 'All' : type}
+          </Badge>
+        ))}
       </div>
 
       {/* Documents */}
       {filteredDocuments.length === 0 ? (
-        <Card className="p-12 bg-card border-border text-center">
-          <Filter className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            No documents found
-          </h3>
+        <Card className="p-12 text-center">
+          <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="font-semibold mb-2">No documents found</h3>
           <p className="text-sm text-muted-foreground">
             Try adjusting your search or filters
           </p>
@@ -157,7 +140,7 @@ export default function Library() {
             <DocumentCard
               key={doc.id}
               document={doc}
-              onDelete={deleteDocument}
+              onDelete={() => deleteDocument(doc.id)}
             />
           ))}
         </div>

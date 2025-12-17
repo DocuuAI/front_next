@@ -19,10 +19,32 @@ export default function Dashboard() {
   const deleteDocument = useAppStore((s) => s.deleteDocument);
   console.log("PROFILE FROM SUPABASE STORE:", profile);
 
+  const totalDocs = documents.length;
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const docsThisMonth = documents.filter(
+      (d) => new Date(d.created_at) >= startOfMonth
+    ).length;
+
+    const docsLastMonth = documents.filter(
+      (d) => {
+        const date = new Date(d.created_at);
+        return date >= startOfPrevMonth && date <= endOfPrevMonth;
+      }
+    ).length;
+
+
   const router = useRouter();
 
   const recentDocuments = documents.slice(0, 6);
   const upcomingDeadlines = deadlines.slice(0, 3);
+  const growth =
+  docsLastMonth === 0
+    ? 100
+    : Math.round(((docsThisMonth - docsLastMonth) / docsLastMonth) * 100);
 
   return (
     <div className="p-6 space-y-6">
@@ -59,9 +81,10 @@ export default function Dashboard() {
               <FileText className="w-6 h-6 text-blue-500" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+          <div className="flex items-center gap-1 mt-2 text-xs" 
+              style={{ color: growth >= 0 ? 'green' : 'red' }}>
             <TrendingUp className="w-3 h-3" />
-            <span>+12% this month</span>
+            <span>{growth >= 0 ? '+' : ''}{growth}% this month</span>
           </div>
         </Card>
 
@@ -123,7 +146,11 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {recentDocuments.map((doc) => (
-              <DocumentCard key={doc.id} document={doc} onDelete={deleteDocument} />
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onDelete={() => deleteDocument(doc.id)}
+              />
             ))}
           </div>
         </div>
