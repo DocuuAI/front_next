@@ -1,13 +1,18 @@
 'use client';
+
 import { useAppStore } from "@/contexts/AppContext";
+import DocumentCard from "@/components/cards/DocumentCard";
 
 export default function SearchPage() {
   const documents = useAppStore((s) => s.documents);
   const searchQuery = useAppStore((s) => s.searchQuery);
-  const filtered = documents.filter(doc => {
-    const title = doc?.title || "";
+  const deleteDocument = useAppStore((s) => s.deleteDocument);
+
+  // ✅ Filter by file_name
+  const filtered = documents.filter((doc) => {
+    const name = doc.file_name || "";
     const query = searchQuery || "";
-    return title.toLowerCase().includes(query.toLowerCase());
+    return name.toLowerCase().includes(query.toLowerCase());
   });
 
   return (
@@ -19,9 +24,13 @@ export default function SearchPage() {
       {filtered.length === 0 ? (
         <p className="text-muted-foreground">No documents found.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((doc) => (
-            <div key={doc.id}>{doc.title}</div>
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              onDelete={() => deleteDocument(doc.id)}
+            />
           ))}
         </div>
       )}
