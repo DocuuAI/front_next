@@ -257,7 +257,7 @@ export default function Settings() {
       </Button>
     </div>
   </Card>
-  </TabsContent>
+  
       <Card className="p-6 mt-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-foreground">My Businesses</h3>
@@ -302,6 +302,7 @@ export default function Settings() {
         </div>
       )}
     </Card>
+    </TabsContent>
 
         {/* NOTIFICATIONS TAB */}
 <TabsContent value="notifications" className="space-y-6">
