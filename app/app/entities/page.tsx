@@ -1,162 +1,248 @@
-'use client';
-import { Building2, User, AlertTriangle, FileText, Mail, Phone } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppStore } from '@/contexts/AppContext';
+"use client";
+
+import { useEffect, useState } from "react";
+import { Building2, User, FileText, Trash2, Plus } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
+import { useAppStore } from "@/contexts/AppContext";
+import { toast } from "sonner";
+import { Entity } from "@/types/entity";
 
 export default function Entities() {
+  const router = useRouter();
+
   const documents = useAppStore((s) => s.documents);
   const entities = useAppStore((s) => s.entities);
-  const businesses = entities.filter(e => e.type === 'business');
-  const people = entities.filter(e => e.type === 'person');
+  const setEntities = useAppStore((s) => s.setEntities);
 
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'high': return 'bg-red-500/10 text-red-500';
-      case 'medium': return 'bg-yellow-500/10 text-yellow-500';
-      case 'low': return 'bg-green-500/10 text-green-500';
-      default: return 'bg-gray-500/10 text-gray-500';
+  /* ---------------- Local State ---------------- */
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"person" | "business">("person");
+  const [phone, setPhone] = useState("");
+  const [pan, setPan] = useState("");
+  const [gst, setGst] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const businesses = entities.filter((e) => e.type === "business");
+  const people = entities.filter((e) => e.type === "person");
+
+  /* ---------------- Fetch Entities ---------------- */
+  useEffect(() => {
+    if (entities.length > 0) return;
+
+    const load = async () => {
+      try {
+        const res = await fetch("/api/entities");
+        const data = await res.json();
+        setEntities(data.entities ?? []);
+      } catch {
+        toast.error("Failed to load entities");
+      }
+    };
+
+    load();
+  }, [entities.length, setEntities]);
+
+  /* ---------------- Delete ---------------- */
+  const deleteEntity = async (id: string) => {
+    if (!confirm("Delete this entity?")) return;
+
+    try {
+      const res = await fetch(`/api/entities/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+
+      setEntities(entities.filter((e) => String(e.id) !== String(id)));
+      toast.success("Entity deleted");
+    } catch {
+      toast.error("Failed to delete entity");
     }
   };
 
-  const EntityCard = ({ entity }: { entity: typeof entities[0] }) => {
-    const entityDocs = documents.filter(d => entity.documents.includes(d.id));
-    
+  /* ---------------- Create ---------------- */
+  const createEntity = async () => {
+    if (!name.trim()) {
+      toast.error("Entity name required");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/entities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, type }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // ✅ FIX HERE
+      setEntities([data.entity, ...entities]);
+
+      toast.success("Entity created");
+      setOpen(false);
+      setName("");
+      setType("person");
+    } catch {
+      toast.error("Failed to create entity");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* ---------------- Card ---------------- */
+  const EntityCard = ({ entity }: { entity: Entity }) => {
+    const entityDocs = documents.filter((d) => String(d.entity_id) === entity.id);
+
     return (
-      <Card className="p-6 bg-card border-border hover:shadow-lg transition-all">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              {entity.type === 'business' ? (
-                <Building2 className="w-6 h-6 text-primary" />
-              ) : (
-                <User className="w-6 h-6 text-primary" />
-              )}
+      <Card className="p-6 space-y-4">
+        <div className="flex justify-between">
+          <div className="flex gap-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              {entity.type === "business" ? <Building2 /> : <User />}
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">{entity.name}</h3>
-              <p className="text-sm text-muted-foreground capitalize">{entity.type}</p>
+              <h3 className="font-semibold">{entity.name}</h3>
+              <p className="text-sm opacity-70">{entity.type}</p>
             </div>
           </div>
-          <Badge className={getRiskColor(entity.riskLevel)}>
-            {entity.riskLevel} risk
-          </Badge>
-        </div>
 
-        <div className="space-y-2 mb-4">
-          {entity.email && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="w-4 h-4" />
-              <span>{entity.email}</span>
-            </div>
-          )}
-          {entity.phone && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="w-4 h-4" />
-              <span>{entity.phone}</span>
-            </div>
-          )}
-          {entity.pan && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">PAN:</span>
-              <span className="font-mono text-foreground">{entity.pan}</span>
-            </div>
-          )}
-          {entity.gst && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">GST:</span>
-              <span className="font-mono text-foreground">{entity.gst}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <FileText className="w-4 h-4" />
-            <span>{entityDocs.length} documents</span>
-          </div>
-          <Button variant="outline" size="sm">
-            View Profile
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => deleteEntity(entity.id)}
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
 
-        {entity.riskLevel === 'high' && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5" />
-            <p className="text-xs text-red-500">
-              Requires immediate attention - Legal notice pending
-            </p>
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            {entityDocs.length} documents
           </div>
-        )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/app/entities/${entity.id}`)}
+          >
+            View Profile
+          </Button>
+        </div>
       </Card>
     );
   };
 
+  /* ---------------- UI ---------------- */
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Entity Management</h1>
-        <p className="text-muted-foreground">
-          Manage people and businesses with their associated documents
-        </p>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Entities</h1>
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Entity
+        </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4 bg-card border-border">
-          <p className="text-sm text-muted-foreground mb-1">Total Entities</p>
-          <p className="text-2xl font-bold text-foreground">{entities.length}</p>
-        </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-sm text-muted-foreground mb-1">Businesses</p>
-          <p className="text-2xl font-bold text-foreground">{businesses.length}</p>
-        </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-sm text-muted-foreground mb-1">People</p>
-          <p className="text-2xl font-bold text-foreground">{people.length}</p>
-        </Card>
-        <Card className="p-4 bg-card border-border">
-          <p className="text-sm text-muted-foreground mb-1">High Risk</p>
-          <p className="text-2xl font-bold text-red-500">
-            {entities.filter(e => e.riskLevel === 'high').length}
-          </p>
-        </Card>
-      </div>
-
-      {/* Entities List */}
-      <Tabs defaultValue="all" className="space-y-4">
+      {/* Tabs */}
+      <Tabs defaultValue="all">
         <TabsList>
-          <TabsTrigger value="all">All ({entities.length})</TabsTrigger>
-          <TabsTrigger value="businesses">Businesses ({businesses.length})</TabsTrigger>
-          <TabsTrigger value="people">People ({people.length})</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="business">Businesses</TabsTrigger>
+          <TabsTrigger value="person">People</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {entities.map(entity => (
-              <EntityCard key={entity.id} entity={entity} />
-            ))}
-          </div>
+        <TabsContent value="all" className="grid md:grid-cols-2 gap-4">
+          {entities.map((e) => (
+            <EntityCard key={e.id} entity={e} />
+          ))}
         </TabsContent>
 
-        <TabsContent value="businesses" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {businesses.map(entity => (
-              <EntityCard key={entity.id} entity={entity} />
-            ))}
-          </div>
+        <TabsContent value="business" className="grid md:grid-cols-2 gap-4">
+          {businesses.map((e) => (
+            <EntityCard key={e.id} entity={e} />
+          ))}
         </TabsContent>
 
-        <TabsContent value="people" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {people.map(entity => (
-              <EntityCard key={entity.id} entity={entity} />
-            ))}
-          </div>
+        <TabsContent value="person" className="grid md:grid-cols-2 gap-4">
+          {people.map((e) => (
+            <EntityCard key={e.id} entity={e} />
+          ))}
         </TabsContent>
       </Tabs>
+
+      {/* Add Entity Modal */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Entity</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <input
+              className="border p-2 rounded w-full bg-zinc-900"
+              placeholder="Entity name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <select
+              className="border p-2 rounded w-full bg-zinc-900"
+              value={type}
+              onChange={(e) => setType(e.target.value as any)}
+            >
+              <option value="person">Person</option>
+              <option value="business">Business</option>
+            </select>
+
+            <input
+              className="border p-2 rounded w-full bg-zinc-900"
+              placeholder="Phone (optional)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+
+            <input
+              className="border p-2 rounded w-full bg-zinc-900"
+              placeholder="PAN (optional)"
+              value={pan}
+              onChange={(e) => setPan(e.target.value)}
+            />
+
+            {type === "business" && (
+              <input
+                className="border p-2 rounded w-full bg-zinc-900"
+                placeholder="GST Number (optional)"
+                value={gst}
+                onChange={(e) => setGst(e.target.value)}
+              />
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={createEntity} disabled={loading}>
+              {loading ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

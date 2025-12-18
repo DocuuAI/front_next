@@ -8,10 +8,7 @@ export async function GET() {
     const token = await authData.getToken();
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 2️⃣ Call backend
@@ -35,6 +32,7 @@ export async function GET() {
     }
 
     // 3️⃣ Return backend response
+    // Now data.profile should include entities + doc counts
     return NextResponse.json(data);
 
   } catch (err) {

@@ -1,4 +1,5 @@
 'use client';
+
 import { Sparkles, TrendingUp, FileText, Users, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,34 +18,47 @@ export default function Dashboard() {
   const deadlines = useAppStore((s) => s.deadlines);
   const aiSuggestions = useAppStore((s) => s.aiSuggestions);
   const deleteDocument = useAppStore((s) => s.deleteDocument);
+  const entities = useAppStore((s) => s.entities);  // <-- Added entities from store
+
   console.log("PROFILE FROM SUPABASE STORE:", profile);
 
+  // Document stats
   const totalDocs = documents.length;
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const docsThisMonth = documents.filter(
-      (d) => new Date(d.created_at) >= startOfMonth
-    ).length;
+  const docsThisMonth = documents.filter(
+    (d) => new Date(d.created_at) >= startOfMonth
+  ).length;
 
-    const docsLastMonth = documents.filter(
-      (d) => {
-        const date = new Date(d.created_at);
-        return date >= startOfPrevMonth && date <= endOfPrevMonth;
-      }
-    ).length;
+  const docsLastMonth = documents.filter(
+    (d) => {
+      const date = new Date(d.created_at);
+      return date >= startOfPrevMonth && date <= endOfPrevMonth;
+    }
+  ).length;
 
+  // Entity stats
+  const totalEntities = entities.length;
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const newEntitiesCount = entities.filter((e) => {
+    const createdAt = new Date(e.created_at);
+    return createdAt >= sevenDaysAgo;
+  }).length;
+
+  const growth =
+    docsLastMonth === 0
+      ? 100
+      : Math.round(((docsThisMonth - docsLastMonth) / docsLastMonth) * 100);
 
   const router = useRouter();
 
   const recentDocuments = documents.slice(0, 6);
   const upcomingDeadlines = deadlines.slice(0, 3);
-  const growth =
-  docsLastMonth === 0
-    ? 100
-    : Math.round(((docsThisMonth - docsLastMonth) / docsLastMonth) * 100);
 
   return (
     <div className="p-6 space-y-6">
@@ -75,14 +89,16 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Documents</p>
-              <p className="text-2xl font-bold text-foreground">{documents.length}</p>
+              <p className="text-2xl font-bold text-foreground">{totalDocs}</p>
             </div>
             <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-blue-500" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-2 text-xs" 
-              style={{ color: growth >= 0 ? 'green' : 'red' }}>
+          <div
+            className="flex items-center gap-1 mt-2 text-xs"
+            style={{ color: growth >= 0 ? 'green' : 'red' }}
+          >
             <TrendingUp className="w-3 h-3" />
             <span>{growth >= 0 ? '+' : ''}{growth}% this month</span>
           </div>
@@ -92,7 +108,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Active Entities</p>
-              <p className="text-2xl font-bold text-foreground">24</p>
+              <p className="text-2xl font-bold text-foreground">{totalEntities}</p>
             </div>
             <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-green-500" />
@@ -100,7 +116,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
             <TrendingUp className="w-3 h-3" />
-            <span>+3 new</span>
+            <span>{newEntitiesCount > 0 ? `+${newEntitiesCount} new` : 'No new entities'}</span>
           </div>
         </Card>
 

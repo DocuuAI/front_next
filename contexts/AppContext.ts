@@ -1,22 +1,25 @@
 "use client";
 
-import { Document } from "@/types/document";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+import { Document } from "@/types/document";
+import { Entity } from "@/types/entity";
+
 import {
-  Entity,
   Deadline,
   Notification,
   AISuggestion,
-  mockEntities,
   mockDeadlines,
   mockNotifications,
   mockAISuggestions,
 } from "@/lib/mockData";
 
 interface AppStore {
+  /* -------- DATA -------- */
   documents: Document[];
   entities: Entity[];
+
   deadlines: Deadline[];
   notifications: Notification[];
   unreadNotifications: Notification[];
@@ -25,16 +28,19 @@ interface AppStore {
   avatarUrl: string | null;
   searchQuery: string;
 
+  /* -------- DOCUMENTS -------- */
   setDocuments: (docs: Document[]) => void;
-  setSearchQuery: (query: string) => void;
-
   addDocument: (doc: Document) => void;
   updateDocument: (id: number, updates: Partial<Document>) => Promise<void>;
   deleteDocument: (id: number) => Promise<void>;
 
+  /* -------- ENTITIES (BACKEND) -------- */
+  setEntities: (entities: Entity[]) => void;
   addEntity: (entity: Entity) => void;
   updateEntity: (id: string, updates: Partial<Entity>) => void;
 
+  /* -------- UI / META -------- */
+  setSearchQuery: (query: string) => void;
   markNotificationRead: (id: string) => void;
   setAvatarUrl: (url: string | null) => void;
 }
@@ -42,9 +48,10 @@ interface AppStore {
 export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
-      // State
+      /* ---------------- STATE ---------------- */
       documents: [],
-      entities: mockEntities,
+      entities: [], // ✅ backend-driven
+
       deadlines: mockDeadlines,
       notifications: mockNotifications,
       unreadNotifications: mockNotifications.filter((n) => !n.read),
@@ -53,15 +60,15 @@ export const useAppStore = create<AppStore>()(
       avatarUrl: null,
       searchQuery: "",
 
-      // Actions
+      /* ---------------- DOCUMENTS ---------------- */
       setDocuments: (docs) => set({ documents: docs }),
 
-      setSearchQuery: (query) => set({ searchQuery: query }),
-
       addDocument: (doc) =>
-        set((state) => ({ documents: [doc, ...state.documents] })),
+        set((state) => ({
+          documents: [doc, ...state.documents],
+        })),
 
-      updateDocument: async (id: number, updates: Partial<Document>) => {
+      updateDocument: async (id, updates) => {
         const res = await fetch(`/documents/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -70,7 +77,7 @@ export const useAppStore = create<AppStore>()(
 
         if (!res.ok) throw new Error("Failed to update document");
 
-        const updated = await res.json();
+        const updated: Document = await res.json();
 
         set((state) => ({
           documents: state.documents.map((doc) =>
@@ -79,24 +86,31 @@ export const useAppStore = create<AppStore>()(
         }));
       },
 
-      deleteDocument: async (id: number) => {
-        const prev = get().documents; // ✅ get is now defined
+      deleteDocument: async (id) => {
+        const prev = get().documents;
 
-        // Optimistic UI update
+        // Optimistic UI
         set((state) => ({
           documents: state.documents.filter((d) => d.id !== id),
         }));
 
         try {
-          const res= await fetch(`/api/deletedocument/${id}`, { method: "DELETE" });
-          if (!res.ok) throw new Error("Delete failed");
+          const res = await fetch(`/api/deletedocument/${id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error();
         } catch {
-          set({ documents: prev }); // rollback if backend fails
+          set({ documents: prev }); // rollback
         }
       },
 
+      /* ---------------- ENTITIES ---------------- */
+      setEntities: (entities) => set({ entities }),
+
       addEntity: (entity) =>
-        set((state) => ({ entities: [entity, ...state.entities] })),
+        set((state) => ({
+          entities: [entity, ...state.entities],
+        })),
 
       updateEntity: (id, updates) =>
         set((state) => ({
@@ -105,11 +119,16 @@ export const useAppStore = create<AppStore>()(
           ),
         })),
 
+
+      /* ---------------- UI / META ---------------- */
+      setSearchQuery: (query) => set({ searchQuery: query }),
+
       markNotificationRead: (id) =>
         set((state) => {
           const notifications = state.notifications.map((n) =>
             n.id === id ? { ...n, read: true } : n
           );
+
           return {
             notifications,
             unreadNotifications: notifications.filter((n) => !n.read),
@@ -120,7 +139,12 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: "app-store",
-      partialize: (state) => ({ avatarUrl: state.avatarUrl }),
+
+      // ✅ Persist ONLY UI preferences
+      partialize: (state) => ({
+        avatarUrl: state.avatarUrl,
+        searchQuery: state.searchQuery,
+      }),
     }
   )
 );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload as UploadIcon, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -8,15 +8,72 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
+
+import { Entity } from "@/types/entity";
 import { useAppStore } from "@/contexts/AppContext";
 
 export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+
   const { user } = useUser();
   const router = useRouter();
+  const addDocument = useAppStore((s) => s.addDocument);
 
-  // Dropzone setup
+  /* ---------------- Fetch entities ---------------- */
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchEntities = async () => {
+      try {
+        const res = await fetch("/api/entities");
+        const data = await res.json();
+
+        // supports both: array OR { entities: [] }
+        setEntities(Array.isArray(data) ? data : data.entities || []);
+      } catch (err) {
+        console.error("Failed to fetch entities", err);
+      }
+    };
+
+    fetchEntities();
+  }, [user]);
+
+  /* ---------------- Upload function ---------------- */
+  const uploadDocument = async (file: File, forcedName?: string) => {
+    if (!selectedEntityId) {
+      toast.error("Select an entity first");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("entity_id", selectedEntityId);
+      if (forcedName) formData.append("fileName", forcedName);
+
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      addDocument(data.document);
+      toast.success("Uploaded successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* ---------------- Dropzone ---------------- */
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
       "application/pdf": [".pdf"],
@@ -24,22 +81,28 @@ export default function UploadPage() {
     },
     maxFiles: 1,
     onDrop: async (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setSelectedFile(file);
-        await uploadDocument(file);
-      }
+      if (acceptedFiles.length === 0) return;
+
+      const file = acceptedFiles[0];
+      setSelectedFile(file);
+      await uploadDocument(file);
     },
   });
 
-  // Camera scan handler
+  /* ---------------- Camera upload ---------------- */
   const scanWithCamera = () => {
+    if (!selectedEntityId) {
+      toast.error("Select an entity first");
+      return;
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.capture = "environment"; // back camera
+    input.capture = "environment";
+
     input.onchange = async (e: any) => {
-      const file = e.target.files[0];
+      const file = e.target.files?.[0];
       if (!file) return;
 
       const name = prompt("Enter a document name (without extension):");
@@ -49,67 +112,53 @@ export default function UploadPage() {
       const customFileName = `${name.trim()}.${ext}`;
       await uploadDocument(file, customFileName);
     };
+
     input.click();
   };
 
-  // Upload function (client → server API)
-  const uploadDocument = async (file: File, forcedName?: string) => {
-    if (!user) return alert("User not logged in");
-    setUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("clerkId", user.id);
-      if (forcedName) formData.append("fileName", forcedName);
-
-      const res = await fetch("/api/documents/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-
-      addDocument(data.document); // ✅ instantly updates Library
-      toast.success("Document uploaded successfully!");
-      setSelectedFile(null);
-      router.push("/app/library"); // optional but recommended
-      // Redirect to document details page (optional)
-      // router.push(`/documents/${data.document.id}`);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const addDocument = useAppStore((s) => s.addDocument);
-
+  /* ---------------- UI ---------------- */
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Upload Document</h1>
 
+      {/* Entity selector */}
+      <select
+        className="border p-2 rounded w-full bg-zinc-900"
+        value={selectedEntityId ?? ""}
+        onChange={(e) => setSelectedEntityId(e.target.value || null)}
+      >
+        <option value="">Select Entity</option>
+        {entities.map((ent) => (
+          <option key={ent.id} value={ent.id}>
+            {ent.name} ({ent.type})
+          </option>
+        ))}
+      </select>
+
       {/* Dropzone / Upload Zone */}
       {!uploading && (
         <div {...getRootProps()}>
-        <Card
-          className={`p-10 border-2 border-dashed cursor-pointer text-center transition ${
-            isDragActive ? "scale-105" : ""
-          }`}
-        >
-          <input {...getInputProps()} />
-          <UploadIcon className="w-10 h-10 mx-auto mb-4 text-primary" />
+          <Card
+            className={`p-10 border-2 border-dashed cursor-pointer text-center transition-transform duration-150 ${
+              isDragActive ? "scale-105 border-primary" : "border-zinc-700"
+            }`}
+          >
+            <input {...getInputProps()} />
+            <UploadIcon className="w-10 h-10 mx-auto mb-4 text-primary" />
 
-          <h3 className="text-lg font-semibold">
-            {isDragActive ? "Drop your file…" : "Drag & drop or click to upload"}
-          </h3>
-          <p className="text-sm opacity-70 mt-2">
-            Supports PDF, JPG, PNG (Max 10MB)
-          </p>
-        </Card>
+            <h3 className="text-lg font-semibold">
+              {isDragActive ? "Drop your file…" : "Drag & drop or click to upload"}
+            </h3>
+            <p className="text-sm opacity-70 mt-2">
+              Supports PDF, JPG, PNG (Max 10MB)
+            </p>
+
+            {selectedFile && (
+              <p className="mt-3 text-sm text-foreground/80">
+                Selected: {selectedFile.name}
+              </p>
+            )}
+          </Card>
         </div>
       )}
 
