@@ -180,7 +180,7 @@ export default function Entities() {
         </div>
 
         {/* Details */}
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-sm mt-5">
           {entity.type === "person" && entity.phone && (
             <div className="flex items-center gap-2 opacity-80">
               <Phone className="w-4 h-4" />

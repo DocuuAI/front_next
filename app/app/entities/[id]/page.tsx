@@ -163,7 +163,11 @@ export default function EntityProfilePage() {
           )}
         </div>
 
-        <Button onClick={save}>Save Changes</Button>
+        <div className="mt-6">
+        <Button className="" onClick={save}>
+          Save Changes
+        </Button>
+      </div>
       </Card>
 
       {/* Documents */}
