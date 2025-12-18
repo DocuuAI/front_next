@@ -10,6 +10,7 @@ import { useUserStore } from "@/services/useUserStore";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppStore } from "@/contexts/AppContext";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   
@@ -18,7 +19,9 @@ export default function Dashboard() {
   const deadlines = useAppStore((s) => s.deadlines);
   const aiSuggestions = useAppStore((s) => s.aiSuggestions);
   const deleteDocument = useAppStore((s) => s.deleteDocument);
-  const entities = useAppStore((s) => s.entities);  // <-- Added entities from store
+  const [entityCount, setEntityCount] = useState<number>(0);
+  const [newEntitiesCount, setNewEntitiesCount] = useState<number>(0);
+
 
   console.log("PROFILE FROM SUPABASE STORE:", profile);
 
@@ -39,16 +42,37 @@ export default function Dashboard() {
       return date >= startOfPrevMonth && date <= endOfPrevMonth;
     }
   ).length;
-
-  // Entity stats
-  const totalEntities = entities.length;
+  const totalEntities = entityCount;
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const newEntitiesCount = entities.filter((e) => {
-    const createdAt = new Date(e.created_at);
-    return createdAt >= sevenDaysAgo;
-  }).length;
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const res = await fetch("/api/entities");
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        const entities = data.entities ?? data; // handle both shapes
+        setEntityCount(entities.length);
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const newCount = entities.filter((e: any) => {
+          const createdAt = new Date(e.created_at);
+          return createdAt >= sevenDaysAgo;
+        }).length;
+
+        setNewEntitiesCount(newCount);
+      } catch (err) {
+        console.error("Failed to fetch entities:", err);
+      }
+    };
+
+    fetchEntities();
+  }, []);
 
   const growth =
     docsLastMonth === 0

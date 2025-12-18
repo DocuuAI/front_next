@@ -46,3 +46,45 @@ export async function POST() {
     );
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    const { id, file_name } = await req.json();
+
+    const authData = await auth();
+    const token = await authData.getToken();
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const backendRes = await fetch(
+      `https://docuback-pw5d.onrender.com/documents/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ file_name }),
+      }
+    );
+
+    const data = await backendRes.json();
+
+    if (!backendRes.ok) {
+      return NextResponse.json(
+        { error: data.error || "Rename failed" },
+        { status: backendRes.status }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("Rename error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
