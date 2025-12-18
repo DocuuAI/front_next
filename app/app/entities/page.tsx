@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, User, FileText, Trash2, Plus } from "lucide-react";
+import {
+  Building2,
+  User,
+  FileText,
+  Trash2,
+  Plus,
+  Phone,
+  CreditCard,
+  ReceiptText,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +33,7 @@ export default function Entities() {
   const entities = useAppStore((s) => s.entities);
   const setEntities = useAppStore((s) => s.setEntities);
 
-  /* ---------------- Local State ---------------- */
+  /* ---------------- Create Entity State ---------------- */
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState<"person" | "business">("person");
@@ -32,6 +41,11 @@ export default function Entities() {
   const [pan, setPan] = useState("");
   const [gst, setGst] = useState("");
   const [loading, setLoading] = useState(false);
+
+  /* ---------------- Delete Entity State ---------------- */
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const businesses = entities.filter((e) => e.type === "business");
   const people = entities.filter((e) => e.type === "person");
@@ -53,22 +67,7 @@ export default function Entities() {
     load();
   }, [entities.length, setEntities]);
 
-  /* ---------------- Delete ---------------- */
-  const deleteEntity = async (id: string) => {
-    if (!confirm("Delete this entity?")) return;
-
-    try {
-      const res = await fetch(`/api/entities/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-
-      setEntities(entities.filter((e) => String(e.id) !== String(id)));
-      toast.success("Entity deleted");
-    } catch {
-      toast.error("Failed to delete entity");
-    }
-  };
-
-  /* ---------------- Create ---------------- */
+  /* ---------------- Create Entity ---------------- */
   const createEntity = async () => {
     if (!name.trim()) {
       toast.error("Entity name required");
@@ -78,21 +77,35 @@ export default function Entities() {
     setLoading(true);
 
     try {
+      const payload: any = { name, type };
+
+      if (type === "person") {
+        payload.phone = phone || undefined;
+        payload.pan = pan || undefined;
+      }
+
+      if (type === "business") {
+        payload.gst_number = gst || undefined;
+      }
+
       const res = await fetch("/api/entities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // ✅ FIX HERE
       setEntities([data.entity, ...entities]);
-
       toast.success("Entity created");
+
+      // reset
       setOpen(false);
       setName("");
+      setPhone("");
+      setPan("");
+      setGst("");
       setType("person");
     } catch {
       toast.error("Failed to create entity");
@@ -101,34 +114,97 @@ export default function Entities() {
     }
   };
 
+  /* ---------------- Delete Entity ---------------- */
+  const confirmDeleteEntity = (entity: Entity) => {
+    setEntityToDelete(entity);
+    setDeleteOpen(true);
+  };
 
-  /* ---------------- Card ---------------- */
+  const deleteEntity = async () => {
+    if (!entityToDelete) return;
+
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`/api/entities/${entityToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error();
+
+      setEntities(entities.filter((e) => e.id !== entityToDelete.id));
+      toast.success("Entity deleted");
+      setDeleteOpen(false);
+      setEntityToDelete(null);
+    } catch {
+      toast.error("Failed to delete entity");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  /* ---------------- Entity Card ---------------- */
   const EntityCard = ({ entity }: { entity: Entity }) => {
-    const entityDocs = documents.filter((d) => String(d.entity_id) === entity.id);
+    const entityDocs = documents.filter(
+      (d) => String(d.entity_id) === String(entity.id)
+    );
 
     return (
-      <Card className="p-6 space-y-4">
-        <div className="flex justify-between">
+      <Card className="p-5 space-y-4 hover:shadow-lg transition">
+        {/* Header */}
+        <div className="flex justify-between items-start">
           <div className="flex gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              {entity.type === "business" ? <Building2 /> : <User />}
+            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+              {entity.type === "business" ? (
+                <Building2 className="w-5 h-5" />
+              ) : (
+                <User className="w-5 h-5" />
+              )}
             </div>
+
             <div>
-              <h3 className="font-semibold">{entity.name}</h3>
-              <p className="text-sm opacity-70">{entity.type}</p>
+              <h3 className="font-semibold text-lg">{entity.name}</h3>
+              <p className="text-xs uppercase opacity-60 tracking-wide">
+                {entity.type}
+              </p>
             </div>
           </div>
 
           <Button
             variant="destructive"
             size="icon"
-            onClick={() => deleteEntity(entity.id)}
+            onClick={() => confirmDeleteEntity(entity)}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex justify-between items-center text-sm">
+        {/* Details */}
+        <div className="space-y-2 text-sm">
+          {entity.type === "person" && entity.phone && (
+            <div className="flex items-center gap-2 opacity-80">
+              <Phone className="w-4 h-4" />
+              {entity.phone}
+            </div>
+          )}
+
+          {entity.type === "person" && entity.pan && (
+            <div className="flex items-center gap-2 opacity-80">
+              <CreditCard className="w-4 h-4" />
+              PAN: {entity.pan}
+            </div>
+          )}
+
+          {entity.type === "business" && entity.gst && (
+            <div className="flex items-center gap-2 opacity-80">
+              <ReceiptText className="w-4 h-4" />
+              GST: {entity.gst}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between items-center pt-3 border-t text-sm">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             {entityDocs.length} documents
@@ -185,7 +261,7 @@ export default function Entities() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Entity Modal */}
+      {/* Create Entity Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
@@ -209,19 +285,22 @@ export default function Entities() {
               <option value="business">Business</option>
             </select>
 
-            <input
-              className="border p-2 rounded w-full bg-zinc-900"
-              placeholder="Phone (optional)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-
-            <input
-              className="border p-2 rounded w-full bg-zinc-900"
-              placeholder="PAN (optional)"
-              value={pan}
-              onChange={(e) => setPan(e.target.value)}
-            />
+            {type === "person" && (
+              <>
+                <input
+                  className="border p-2 rounded w-full bg-zinc-900"
+                  placeholder="Phone (optional)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <input
+                  className="border p-2 rounded w-full bg-zinc-900"
+                  placeholder="PAN (optional)"
+                  value={pan}
+                  onChange={(e) => setPan(e.target.value)}
+                />
+              </>
+            )}
 
             {type === "business" && (
               <input
@@ -239,6 +318,38 @@ export default function Entities() {
             </Button>
             <Button onClick={createEntity} disabled={loading}>
               {loading ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              Delete Entity
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm">
+            Delete <strong>{entityToDelete?.name}</strong>? This cannot be undone.
+          </p>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteEntity}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

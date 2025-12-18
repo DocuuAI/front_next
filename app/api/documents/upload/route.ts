@@ -12,16 +12,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const formData = await req.formData();
+  const body = await req.json();
 
   const res = await fetch(
-    "https://docuback-pw5d.onrender.com/documents/upload",
+    "https://docuback-pw5d.onrender.com/documents",
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      body: formData,
+      body: JSON.stringify(body),
     }
   );
 
