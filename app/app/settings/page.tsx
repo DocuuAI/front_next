@@ -43,6 +43,10 @@ function SettingsSkeleton() {
 export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const avatarUrl = useAppStore((s) => s.avatarUrl);
+  const entities = useAppStore((s) => s.entities);
+  const businessEntities = entities.filter(
+    (e) => e.type === "business"
+  );
   const setAvatarUrl = useAppStore((s) => s.setAvatarUrl);
   const handleImageChange = async (e: any) => {
       const file = e.target.files[0];
@@ -253,31 +257,51 @@ export default function Settings() {
       </Button>
     </div>
   </Card>
-  <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-foreground mb-2">My Businesses</h3>
-              <Button size="sm">Add Business</Button>
-            </div>
+  </TabsContent>
+      <Card className="p-6 mt-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-foreground">My Businesses</h3>
 
-            <div className="space-y-2">
-              {businesses.map((business) => (
-                <div key={business.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <User className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-gray-900 text-sm">{business.name}</p>
-                      <p className="text-gray-600 text-xs">{business.role}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+        <Button
+          size="sm"
+          onClick={() => (window.location.href = "/app/entities")}
+        >
+          Add Business
+        </Button>
+      </div>
+
+      {businessEntities.length === 0 ? (
+        <div className="text-sm text-muted-foreground">
+          No businesses yet. Create one to start uploading documents.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {businessEntities.map((business) => (
+            <div
+              key={business.id}
+              className="flex items-center justify-between p-3 bg-muted/40 rounded-lg hover:bg-muted transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <User className="w-5 h-5 text-indigo-600" />
                 </div>
-              ))}
-            </div>
-          </Card>
-</TabsContent>
 
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {business.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Business Entity
+                  </p>
+                </div>
+              </div>
+
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
 
         {/* NOTIFICATIONS TAB */}
 <TabsContent value="notifications" className="space-y-6">

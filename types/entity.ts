@@ -4,6 +4,6 @@ export interface Entity {
   type: "person" | "business";
   phone?: string;
   pan?: string;
-  gst?: string;
+  gst_number?: string;
 created_at: string;
 }

@@ -39,7 +39,7 @@ export default function Entities() {
   const [type, setType] = useState<"person" | "business">("person");
   const [phone, setPhone] = useState("");
   const [pan, setPan] = useState("");
-  const [gst, setGst] = useState("");
+  const [gst_number, setgst_number] = useState("");
   const [loading, setLoading] = useState(false);
 
   /* ---------------- Delete Entity State ---------------- */
@@ -85,7 +85,7 @@ export default function Entities() {
       }
 
       if (type === "business") {
-        payload.gst_number = gst || undefined;
+        payload.gst_number_number = gst_number || undefined;
       }
 
       const res = await fetch("/api/entities", {
@@ -105,7 +105,7 @@ export default function Entities() {
       setName("");
       setPhone("");
       setPan("");
-      setGst("");
+      setgst_number("");
       setType("person");
     } catch {
       toast.error("Failed to create entity");
@@ -195,10 +195,10 @@ export default function Entities() {
             </div>
           )}
 
-          {entity.type === "business" && entity.gst && (
+          {entity.type === "business" && entity.gst_number && (
             <div className="flex items-center gap-2 opacity-80">
               <ReceiptText className="w-4 h-4" />
-              GST: {entity.gst}
+              gst_number: {entity.gst_number}
             </div>
           )}
         </div>
@@ -305,9 +305,9 @@ export default function Entities() {
             {type === "business" && (
               <input
                 className="border p-2 rounded w-full bg-zinc-900"
-                placeholder="GST Number (optional)"
-                value={gst}
-                onChange={(e) => setGst(e.target.value)}
+                placeholder="gst_number Number (optional)"
+                value={gst_number}
+                onChange={(e) => setgst_number(e.target.value)}
               />
             )}
           </div>

@@ -1,4 +1,4 @@
-export type DocumentType = 'GST' | 'PAN' | 'Aadhaar' | 'Bank Statement' | 'Legal Notice' | 'Invoice' | 'Contract';
+export type DocumentType = 'gst_number' | 'PAN' | 'Aadhaar' | 'Bank Statement' | 'Legal Notice' | 'Invoice' | 'Contract';
 
 export interface Document {
   title: string;
@@ -20,7 +20,7 @@ export interface Entity {
   email?: string;
   phone?: string;
   pan?: string;
-  gst?: string;
+  gst_number?: string;
   documents: string[];
   riskLevel: 'low' | 'medium' | 'high';
 }
@@ -59,18 +59,18 @@ export interface AISuggestion {
 export const mockDocuments: Document[] = [
   {
   id: '1',
-  name: 'GST Return Q4 2024.pdf',
-  type: 'GST',
+  name: 'gst_number Return Q4 2024.pdf',
+  type: 'gst_number',
   uploadDate: '2024-01-15',
   size: '2.4 MB',
   status: 'processed',
   extractedFields: {
-    'GSTIN': '29ABCDE1234F1Z5',
+    'gst_numberIN': '29ABCDE1234F1Z5',
     'Period': 'Q4 2024',
     'Total Tax': '₹1,24,500'
   },
   entityId: '1',
-  title: 'GST Return Q4 2024' // Add the title property here
+  title: 'gst_number Return Q4 2024' // Add the title property here
   },
   {
     id: '2',
@@ -147,7 +147,7 @@ export const mockEntities: Entity[] = [
     type: 'business',
     email: 'contact@techsolutions.com',
     phone: '+91 98765 43210',
-    gst: '29ABCDE1234F1Z5',
+    gst_number: '29ABCDE1234F1Z5',
     pan: 'ABCDE1234F',
     documents: ['1', '6'],
     riskLevel: 'low'
@@ -168,7 +168,7 @@ export const mockEntities: Entity[] = [
     type: 'business',
     email: 'info@globalimports.com',
     phone: '+91 98765 67890',
-    gst: '27FGHIJ5678K2L9',
+    gst_number: '27FGHIJ5678K2L9',
     documents: ['4'],
     riskLevel: 'high'
   }
@@ -177,8 +177,8 @@ export const mockEntities: Entity[] = [
 export const mockDeadlines: Deadline[] = [
   {
     id: '1',
-    title: 'GST Return Filing',
-    description: 'File GST return for Q4 2024',
+    title: 'gst_number Return Filing',
+    description: 'File gst_number return for Q4 2024',
     dueDate: '2024-01-20',
     priority: 'high',
     documentId: '1',
@@ -218,8 +218,8 @@ export const mockNotifications: Notification[] = [
   {
     id: '1',
     type: 'deadline',
-    title: 'GST Return Due Soon',
-    message: 'GST return filing deadline is in 5 days',
+    title: 'gst_number Return Due Soon',
+    message: 'gst_number return filing deadline is in 5 days',
     timestamp: '2024-01-15T10:30:00',
     read: false,
     priority: 'high',

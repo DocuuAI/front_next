@@ -14,7 +14,7 @@ type FormState = {
   name: string;
   phone?: string;
   pan?: string;
-  gst_number?: string;
+  gst_number_number?: string;
 };
 
 export default function EntityProfilePage() {
@@ -37,7 +37,7 @@ export default function EntityProfilePage() {
       name: ent.name,
       phone: ent.phone ?? "",
       pan: ent.pan ?? "",
-      gst_number: ent.gst ?? "",
+      gst_number_number: ent.gst_number ?? "",
     });
     setLoading(false);
   }, []);
@@ -87,8 +87,8 @@ export default function EntityProfilePage() {
         name: form.name,
         phone: form.phone || undefined,
         pan: entity.type === "person" ? form.pan || undefined : undefined,
-        gst_number:
-          entity.type === "business" ? form.gst_number || undefined : undefined,
+        gst_number_number:
+          entity.type === "business" ? form.gst_number_number || undefined : undefined,
       };
 
       const res = await fetch(`/api/entities/${id}`, {
@@ -156,9 +156,9 @@ export default function EntityProfilePage() {
 
           {entity.type === "business" && (
             <Field
-              label="GST Number"
-              value={form.gst_number ?? ""}
-              onChange={(v) => setForm({ ...form!, gst_number: v })}
+              label="gst_number Number"
+              value={form.gst_number_number ?? ""}
+              onChange={(v) => setForm({ ...form!, gst_number_number: v })}
             />
           )}
         </div>

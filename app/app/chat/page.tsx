@@ -16,7 +16,7 @@ interface Message {
 
 const suggestedPrompts = [
   'What documents are due this week?',
-  'Show me all GST returns',
+  'Show me all gst_number returns',
   'Which entities have high risk?',
   'Summarize my compliance status'
 ];
@@ -65,11 +65,11 @@ export default function Chat() {
     const lowerQuery = query.toLowerCase();
     
     if (lowerQuery.includes('due') || lowerQuery.includes('deadline')) {
-      return 'You have 4 upcoming deadlines:\n\n1.  GST Return Filing  - Due in 5 days (Jan 20)\n2.  Legal Notice Response  - Due in 10 days (Jan 25)\n3.  Contract Renewal  - Due in 21 days (Feb 5)\n4.  Tax Payment  - Due in 16 days (Jan 31)\n\nWould you like me to provide more details about any of these?';
+      return 'You have 4 upcoming deadlines:\n\n1.  gst_number Return Filing  - Due in 5 days (Jan 20)\n2.  Legal Notice Response  - Due in 10 days (Jan 25)\n3.  Contract Renewal  - Due in 21 days (Feb 5)\n4.  Tax Payment  - Due in 16 days (Jan 31)\n\nWould you like me to provide more details about any of these?';
     }
     
-    if (lowerQuery.includes('gst')) {
-      return 'I found 1 GST document in your library:\n\n GST Return Q4 2024.pdf \n- GSTIN: 29ABCDE1234F1Z5\n- Period: Q4 2024\n- Total Tax: ₹1,24,500\n- Status: Processed\n\nWould you like to view this document or check for related deadlines?';
+    if (lowerQuery.includes('gst_number')) {
+      return 'I found 1 gst_number document in your library:\n\n gst_number Return Q4 2024.pdf \n- gst_numberIN: 29ABCDE1234F1Z5\n- Period: Q4 2024\n- Total Tax: ₹1,24,500\n- Status: Processed\n\nWould you like to view this document or check for related deadlines?';
     }
     
     if (lowerQuery.includes('risk')) {
