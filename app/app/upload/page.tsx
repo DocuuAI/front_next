@@ -58,7 +58,8 @@ export default function UploadPage() {
   }, [user]);
 
   /* ---------------- Upload function ---------------- */
-  const uploadDocument = async (
+  /* ---------------- Upload function ---------------- */
+const uploadDocument = async (
     file: File,
     forcedName?: string,
     entityOverride?: string
@@ -66,7 +67,6 @@ export default function UploadPage() {
     if (noEntities) return;
 
     const entityId = entityOverride ?? selectedEntityId;
-
     if (!entityId) {
       toast.error("Please select an entity");
       return;
@@ -75,33 +75,22 @@ export default function UploadPage() {
     setUploading(true);
 
     try {
-      const fileName = forcedName ?? file.name;
-      const filePath = `${user?.id}/${Date.now()}-${fileName}`;
+      // Prepare multipart form
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("entity_id", entityId);
+      if (forcedName) formData.append("file_name", forcedName);
 
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: true,
-        });
-
-      if (uploadError) throw new Error(uploadError.message);
-
+      // Call backend upload endpoint
       const res = await fetch("/api/documents/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_path: filePath,
-          file_name: fileName,
-          file_type: file.type,
-          file_size: file.size,
-          entity_id: entityId,
-        }),
+        body: formData, // multipart form
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Upload failed");
 
+      // Update global state / store
       addDocument(data.document);
 
       setUploadResult({

@@ -25,7 +25,7 @@ import { Document } from '@/types/document';
 interface Props {
   document: Document;
   onDelete?: (id: number) => void;
-  onRename?: (id: number, newName: string) => void; // optional optimistic parent update
+  onRename?: (id: number, newName: string) => void;
 }
 
 export default function DocumentCard({
@@ -34,22 +34,34 @@ export default function DocumentCard({
   onRename,
 }: Props) {
   const uploadedAt = new Date(document.created_at).toLocaleDateString('en-GB');
+
   const originalName = document.file_name;
-    const lastDotIndex = originalName.lastIndexOf(".");
-    const extension = lastDotIndex !== -1 ? originalName.slice(lastDotIndex) : "";
-    const baseName = lastDotIndex !== -1 ? originalName.slice(0, lastDotIndex) : originalName;
+  const lastDotIndex = originalName.lastIndexOf('.');
+  const extension =
+    lastDotIndex !== -1 ? originalName.slice(lastDotIndex) : '';
+  const baseName =
+    lastDotIndex !== -1 ? originalName.slice(0, lastDotIndex) : originalName;
+
   const [isRenaming, setIsRenaming] = useState(false);
   const [fileName, setFileName] = useState(baseName);
   const [isSaving, setIsSaving] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
+  // ─────────────────────────────────────────────
+  // 📂 Open file securely (NO SUPABASE URL)
+  // ─────────────────────────────────────────────
   const openFile = () => {
-    if (!isRenaming) {
-      window.open(document.file_url, '_blank');
-    }
+    if (isRenaming) return;
+    window.open(
+      `/api/calldocument/download/${document.id}`,
+      '_blank'
+    );
   };
 
+  // ─────────────────────────────────────────────
+  // ✏️ Rename logic
+  // ─────────────────────────────────────────────
   const startRename = () => {
     setIsRenaming(true);
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -62,17 +74,18 @@ export default function DocumentCard({
 
   const saveRename = async () => {
     const trimmed = fileName.trim();
-
-    if (!trimmed || trimmed === document.file_name) {
+    if (!trimmed || trimmed === baseName) {
       cancelRename();
       return;
     }
+
     const finalName = trimmed + extension;
+
     try {
       setIsSaving(true);
 
       // Optimistic update (optional)
-      onRename?.(document.id, trimmed);
+      onRename?.(document.id, finalName);
 
       await fetch('/api/calldocument', {
         method: 'PUT',
@@ -86,7 +99,7 @@ export default function DocumentCard({
       setIsRenaming(false);
     } catch (err) {
       console.error('Rename failed:', err);
-      setFileName(document.file_name);
+      setFileName(baseName);
     } finally {
       setIsSaving(false);
     }
@@ -96,7 +109,9 @@ export default function DocumentCard({
     <Card
       onClick={openFile}
       className={`p-4 transition bg-card ${
-        isRenaming ? 'cursor-default' : 'cursor-pointer hover:shadow-lg'
+        isRenaming
+          ? 'cursor-default'
+          : 'cursor-pointer hover:shadow-lg'
       }`}
     >
       <div className="flex justify-between items-start mb-3">
@@ -121,7 +136,7 @@ export default function DocumentCard({
                     if (e.key === 'Enter') saveRename();
                     if (e.key === 'Escape') cancelRename();
                   }}
-                  className="h-7 px-2 text-sm border rounded w-full bg-zinc-900 text-zinc-100 placeholder:text-zinc-400"
+                  className="h-7 px-2 text-sm border rounded w-full bg-zinc-900 text-zinc-100"
                 />
 
                 <Button
@@ -144,7 +159,8 @@ export default function DocumentCard({
               </div>
             ) : (
               <p className="font-semibold text-sm truncate">
-                {fileName}{extension}
+                {fileName}
+                {extension}
               </p>
             )}
 
@@ -170,7 +186,9 @@ export default function DocumentCard({
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
-                openFile();
+                window.open(
+                  `/api/calldocument/download/${document.id}`
+                );
               }}
             >
               <Download className="w-4 h-4 mr-2" />
@@ -188,7 +206,7 @@ export default function DocumentCard({
             </DropdownMenuItem>
 
             <DropdownMenuItem
-              className="text-destructive bg-zinc-900"
+              className="text-destructive"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete?.(document.id);

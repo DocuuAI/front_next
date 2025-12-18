@@ -12,19 +12,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const formData = await req.formData();
 
-  const res = await fetch(
-    "https://docuback-pw5d.onrender.com/documents",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const file = formData.get("file") as File;
+  const entityId = formData.get("entity_id") as string;
+
+  if (!file) {
+    return NextResponse.json({ error: "File missing" }, { status: 400 });
+  }
+
+  if (!entityId) {
+    return NextResponse.json({ error: "entity_id is required" }, { status: 400 });
+  }
+
+  const uploadForm = new FormData();
+  uploadForm.append("file", file);
+  uploadForm.append("entity_id", entityId);
+
+  const res = await fetch("https://docuback-pw5d.onrender.com/documents/upload", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`, // DO NOT set Content-Type here
+    },
+    body: uploadForm,
+  });
 
   const text = await res.text();
 
