@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Grid, List, Filter } from 'lucide-react';
+import { Grid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -25,28 +25,39 @@ export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
 
-  // ✅ SAFE FILTER
-  const filteredDocuments = documents.filter((doc) => {
-    const name = doc.file_name ?? '';
-    const type = doc.file_type ?? '';
-
-    return (
-      name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (filterType === 'all' || type === filterType)
-    );
-  });
-
-  // ✅ SAFE NON-NULL TYPES
+  /* ---------------- AI DOCUMENT TYPES ---------------- */
   const documentTypes: string[] = [
     'all',
     ...Array.from(
       new Set(
         documents
-          .map((d) => d.file_type)
-          .filter((t): t is string => typeof t === 'string')
+          .map((d) => d.library)
+          .filter((t): t is string => typeof t === 'string' && t.length > 0)
       )
     ),
   ];
+
+  /* ---------------- GROUP BY AI TYPE ---------------- */
+  const groupedDocuments: Record<string, typeof documents> = {};
+
+  documents.forEach((doc) => {
+    const type = doc.library || 'Uncategorized';
+    if (!groupedDocuments[type]) groupedDocuments[type] = [];
+    groupedDocuments[type].push(doc);
+  });
+
+  /* ---------------- FILTER ---------------- */
+  const filteredGroupedDocuments: Record<string, typeof documents> = {};
+
+  Object.entries(groupedDocuments).forEach(([type, docs]) => {
+    filteredGroupedDocuments[type] = docs.filter((doc) => {
+      const name = doc.file_name ?? '';
+      return (
+        name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        (filterType === 'all' || type === filterType)
+      );
+    });
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -55,7 +66,7 @@ export default function Library() {
         <div>
           <h1 className="text-2xl font-bold mb-2">Document Library</h1>
           <p className="text-muted-foreground">
-            {filteredDocuments.length} documents found
+            {documents.length} documents found
           </p>
         </div>
 
@@ -105,13 +116,13 @@ export default function Library() {
         </div>
       </Card>
 
-      {/* Category Badges */}
+      {/* AI Category Badges */}
       <div className="flex flex-wrap gap-2">
         {documentTypes.map((type) => (
           <Badge
             key={type}
             variant={filterType === type ? 'default' : 'outline'}
-            className="cursor-pointer"
+            className="cursor-pointer capitalize"
             onClick={() => setFilterType(type)}
           >
             {type === 'all' ? 'All' : type}
@@ -119,32 +130,34 @@ export default function Library() {
         ))}
       </div>
 
-      {/* Documents */}
-      {filteredDocuments.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Filter className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-semibold mb-2">No documents found</h3>
-          <p className="text-sm text-muted-foreground">
-            Try adjusting your search or filters
-          </p>
-        </Card>
-      ) : (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-              : 'space-y-3'
-          }
-        >
-          {filteredDocuments.map((doc) => (
-            <DocumentCard
-              key={doc.id}
-              document={doc}
-              onDelete={() => deleteDocument(doc.id)}
-            />
-          ))}
+      {/* Documents grouped by AI classification */}
+      {Object.entries(filteredGroupedDocuments).map(([type, docs]) => (
+        <div key={type} className="space-y-4">
+          <h2 className="text-xl font-semibold capitalize">{type}</h2>
+
+          {docs.length === 0 ? (
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              No documents found in this category.
+            </Card>
+          ) : (
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+                  : 'space-y-3'
+              }
+            >
+              {docs.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  onDelete={() => deleteDocument(doc.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      ))}
     </div>
   );
 }

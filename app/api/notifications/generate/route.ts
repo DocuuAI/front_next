@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    // 1️⃣ Get Clerk JWT
     const authData = await auth();
     const token = await authData.getToken();
 
@@ -14,35 +13,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Forward body to backend
-    const body = await req.json();
-
-    const backendRes = await fetch(
-      "http://127.0.0.1:4000/users/update",
+    const res = await fetch(
+      "http://127.0.0.1:4000/notifications/generate",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
       }
     );
 
-    const data = await backendRes.json();
+    const data = await res.json();
 
-    if (!backendRes.ok) {
+    if (!res.ok) {
       return NextResponse.json(
-        { error: data.error || "Update failed" },
-        { status: backendRes.status }
+        { error: data.error || "Failed to generate notifications" },
+        { status: res.status }
       );
     }
 
-    // 3️⃣ Return backend response
     return NextResponse.json(data);
-
   } catch (err) {
-    console.error("User update error:", err);
+    console.error(err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

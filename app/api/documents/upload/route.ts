@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   uploadForm.append("file", file);
   uploadForm.append("entity_id", entityId);
 
-  const res = await fetch("https://docuback-pw5d.onrender.com/documents/upload", {
+  const res = await fetch("http://127.0.0.1:4000/documents/upload", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`, // DO NOT set Content-Type here

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const backendRes = await fetch(
-      "https://docuback-pw5d.onrender.com/users/sync",
+      "http://127.0.0.1:4000/users/sync",
       {
         method: "POST",
         headers: {

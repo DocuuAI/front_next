@@ -16,7 +16,7 @@ export async function POST() {
 
     // 2️⃣ Call backend
     const backendRes = await fetch(
-      "https://docuback-pw5d.onrender.com/documents",
+      "http://127.0.0.1:4000/documents",
       {
         method: "GET",
         headers: {
@@ -59,7 +59,7 @@ export async function PUT(req: Request) {
     }
 
     const backendRes = await fetch(
-      `https://docuback-pw5d.onrender.com/documents/${id}`,
+      `http://127.0.0.1:4000/documents/${id}`,
       {
         method: "PUT",
         headers: {

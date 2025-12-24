@@ -1,194 +1,213 @@
 "use client";
-import { useState } from 'react';
-import { Send, Sparkles, Paperclip } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+
+import { useEffect, useState } from "react";
+import { Send, Sparkles, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
-  id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp: string;
 }
 
 const suggestedPrompts = [
-  'What documents are due this week?',
-  'Show me all gst_number returns',
-  'Which entities have high risk?',
-  'Summarize my compliance status'
+  "What documents are due this week?",
+  "Show me all gst_number returns",
+  "Which entities have high risk?",
+  "Summarize my compliance status",
 ];
 
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your AI document assistant. I can help you find documents, track deadlines, check compliance, and answer questions about your data. How can I assist you today?',
-      timestamp: new Date()
-    }
-  ]);
-  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  /* ───────── LOAD CHAT HISTORY ───────── */
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const res = await fetch("/api/chat", { method: "GET" });
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (data.history?.length) {
+          setMessages(data.history);
+        } else {
+          setMessages([
+            {
+              role: "assistant",
+              content:
+                "Hello! I'm your AI document assistant. How can I help you today?",
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to load chat history:", err);
+      }
+    };
+
+    loadHistory();
+  }, []);
+
+  /* ───────── SEND MESSAGE ───────── */
   const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content: input,
-      timestamp: new Date()
+      timestamp: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setIsTyping(true);
 
-    // Simulate AI response
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage.content }),
+      });
 
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: generateResponse(input),
-      timestamp: new Date()
-    };
+      const data = await res.json();
 
-    setMessages(prev => [...prev, aiMessage]);
-    setIsTyping(false);
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.reply || "I could not confidently answer that.",
+        timestamp: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "There was an error processing your request.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
-  const generateResponse = (query: string) => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('due') || lowerQuery.includes('deadline')) {
-      return 'You have 4 upcoming deadlines:\n\n1.  gst_number Return Filing  - Due in 5 days (Jan 20)\n2.  Legal Notice Response  - Due in 10 days (Jan 25)\n3.  Contract Renewal  - Due in 21 days (Feb 5)\n4.  Tax Payment  - Due in 16 days (Jan 31)\n\nWould you like me to provide more details about any of these?';
-    }
-    
-    if (lowerQuery.includes('gst_number')) {
-      return 'I found 1 gst_number document in your library:\n\n gst_number Return Q4 2024.pdf \n- gst_numberIN: 29ABCDE1234F1Z5\n- Period: Q4 2024\n- Total Tax: ₹1,24,500\n- Status: Processed\n\nWould you like to view this document or check for related deadlines?';
-    }
-    
-    if (lowerQuery.includes('risk')) {
-      return 'Based on my analysis, you have:\n\n✅  2 Low Risk Entities \n- Tech Solutions Pvt Ltd\n- Rajesh Kumar\n\n⚠️  1 High Risk Entity \n- Global Imports Ltd (Legal notice pending)\n\nI recommend reviewing the high-risk entity and ensuring timely response to the legal notice.';
-    }
-    
-    if (lowerQuery.includes('compliance')) {
-      return ' Compliance Status Overview: \n\n✅  Compliant:  85%\n⚠️  Needs Attention:  15%\n\n Action Items: \n1. Missing PAN verification for Tech Solutions Pvt Ltd\n2. 3 documents need manual categorization\n3. Legal notice response due in 10 days\n\nOverall, your compliance status is good. Focus on the action items to reach 100%.';
-    }
-    
-    return 'I understand your question. Based on your documents and data, I can help you with:\n\n• Document search and retrieval\n• Deadline tracking and reminders\n• Compliance status checks\n• Entity risk assessment\n• Field extraction verification\n\nCould you please provide more specific details about what you\'d like to know?';
-  };
+  /* ───────── CLEAR CHAT ───────── */
+  const handleNewChat = async () => {
+    try {
+      await fetch("/api/chat", { method: "DELETE" });
 
-  const handlePromptClick = (prompt: string) => {
-    setInput(prompt);
+      setMessages([
+        {
+          role: "assistant",
+          content: "Chat cleared. How can I assist you with your documents?",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+    }
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col bg-background">
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-border bg-card">
+      <div className="p-6 border-b flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI Assistant</h1>
-            <p className="text-sm text-muted-foreground">
-              Ask me anything about your documents
-            </p>
-          </div>
+          <Sparkles className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-bold">AI Assistant</h1>
         </div>
+        <Button variant="outline" onClick={handleNewChat}>
+          <Trash2 className="w-4 h-4 mr-2" />
+          New Chat
+        </Button>
       </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-6">
-        <div className="max-w-3xl mx-auto space-y-6">
-          {messages.map((message) => (
+        <div className="max-w-3xl mx-auto space-y-4">
+          {messages.map((m, i) => (
             <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              key={i}
+              className={`flex ${
+                m.role === "user" ? "justify-end" : "justify-start"
+              }`}
             >
               <div
-                className={`max-w-[80%] ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card border border-border'
-                } rounded-lg p-4`}
+                className={`max-w-[80%] rounded-lg p-4 ${
+                  m.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border"
+                }`}
               >
-                {message.role === 'assistant' && (
-                  <div className="flex items-center gap-2 mb-2">
+                {m.role === "assistant" && (
+                  <div className="flex items-center gap-2 mb-1">
                     <Sparkles className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-semibold text-primary">AI Assistant</span>
+                    <span className="text-xs font-semibold text-primary">
+                      AI Assistant
+                    </span>
                   </div>
                 )}
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <p className="text-xs opacity-60 mt-2">
-                  {message.timestamp.toLocaleTimeString()}
+                <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                <p className="text-xs opacity-60 mt-1">
+                  {new Date(m.timestamp).toLocaleTimeString()}
                 </p>
               </div>
             </div>
           ))}
 
           {isTyping && (
-            <div className="flex justify-start">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-100" />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce delay-200" />
-                  </div>
-                  <span className="text-xs text-muted-foreground">AI is typing...</span>
-                </div>
-              </div>
+            <div className="text-sm text-muted-foreground">
+              AI is thinking…
             </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Suggested Prompts */}
-      {messages.length === 1 && (
+      {messages.length <= 1 && (
         <div className="px-6 pb-4">
-          <div className="max-w-3xl mx-auto">
-            <p className="text-sm text-muted-foreground mb-3">Suggested prompts:</p>
-            <div className="flex flex-wrap gap-2">
-              {suggestedPrompts.map((prompt, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-muted"
-                  onClick={() => handlePromptClick(prompt)}
-                >
-                  {prompt}
-                </Badge>
-              ))}
-            </div>
+          <div className="flex gap-2 flex-wrap">
+            {suggestedPrompts.map((p) => (
+              <Badge
+                key={p}
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => setInput(p)}
+              >
+                {p}
+              </Badge>
+            ))}
           </div>
         </div>
       )}
 
       {/* Input */}
-      <div className="p-6 border-t border-border bg-card">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex gap-3">
-            <Button variant="outline" size="icon">
-              <Paperclip className="w-5 h-5" />
-            </Button>
-            <Input
-                placeholder="Ask me anything..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            />
-
-            <Button onClick={handleSend} disabled={!input.trim()}>
-              <Send className="w-5 h-5" />
-            </Button>
-          </div>
+      <div className="p-6 border-t">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Ask me anything…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+          <Button onClick={handleSend} disabled={!input.trim()}>
+            <Send className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     // 3️⃣ Forward to backend
     const backendRes = await fetch(
-      "https://docuback-pw5d.onrender.com/users/avatar",
+      "http://127.0.0.1:4000/users/avatar",
       {
         method: "POST",
         headers: {

@@ -2,10 +2,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import ClientWrapper from "./ClientWrapper";
+import AutoLogout  from "./AutoLogout";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  return <ClientWrapper>{children}</ClientWrapper>;
+  return <ClientWrapper><AutoLogout />{children}</ClientWrapper>;
 }

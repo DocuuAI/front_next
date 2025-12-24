@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export async function POST(req: Request) {
+const BACKEND_URL = "http://127.0.0.1:4000";
+
+export async function GET() {
   try {
-    // 1️⃣ Get Clerk JWT
+    // 1️⃣ Clerk auth
     const authData = await auth();
     const token = await authData.getToken();
 
@@ -14,18 +16,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Forward body to backend
-    const body = await req.json();
-
+    // 2️⃣ Call backend documents API
     const backendRes = await fetch(
-      "http://127.0.0.1:4000/users/update",
+      `${BACKEND_URL}/documents`,
       {
-        method: "POST",
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        cache: "no-store", // always fresh
       }
     );
 
@@ -33,16 +32,25 @@ export async function POST(req: Request) {
 
     if (!backendRes.ok) {
       return NextResponse.json(
-        { error: data.error || "Update failed" },
+        { error: data.error || "Failed to fetch documents" },
         { status: backendRes.status }
       );
     }
 
-    // 3️⃣ Return backend response
-    return NextResponse.json(data);
+    /**
+     * 🔑 Normalize response shape
+     * Backend may return:
+     *  - { documents: [...] }
+     *  - or directly [...]
+     */
+    const documents = Array.isArray(data)
+      ? data
+      : data.documents ?? [];
+
+    return NextResponse.json({ documents });
 
   } catch (err) {
-    console.error("User update error:", err);
+    console.error("Documents fetch error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

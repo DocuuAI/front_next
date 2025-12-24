@@ -19,7 +19,7 @@ export async function DELETE(
   }
 
   const res = await fetch(
-    `https://docuback-pw5d.onrender.com/documents/${id}`,
+    `http://127.0.0.1:4000/documents/${id}`,
     {
       method: "DELETE",
       headers: {

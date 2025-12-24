@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface Props {
+  params: { id: string };
+}
+
+export async function GET(req: Request, context: Props) {
   try {
-    // 🔑 IMPORTANT: params is async in Next 15
-    const { id } = await params;
+    // 🔹 Unwrap params safely
+    const params = await context.params; // ensure it's resolved
+    const { id } = params;
 
     if (!id) {
       return NextResponse.json(
@@ -16,6 +18,7 @@ export async function GET(
       );
     }
 
+    // 🔹 Get Clerk token
     const authData = await auth();
     const token = await authData.getToken();
 
@@ -26,8 +29,9 @@ export async function GET(
       );
     }
 
+    // 🔹 Fetch entities from backend
     const backendRes = await fetch(
-      `http://127.0.0.1:4000/documents/${id}/download`,
+      `http://127.0.0.1:4000/documents/${id}/entities`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -35,23 +39,19 @@ export async function GET(
       }
     );
 
+    const data = await backendRes.json();
+
     if (!backendRes.ok) {
-      const data = await backendRes.json();
       return NextResponse.json(
-        { error: data.error || "Download failed" },
+        { error: data.error || "Failed to fetch entities" },
         { status: backendRes.status }
       );
     }
 
-    // Forward headers (Content-Type, Content-Disposition)
-    const headers = new Headers(backendRes.headers);
-
-    return new NextResponse(await backendRes.arrayBuffer(), {
-      headers,
-      status: 200,
-    });
+    // 🔹 Return entities array (fallback to empty array)
+    return NextResponse.json({ entities: data.entities ?? [] });
   } catch (err) {
-    console.error("Download error:", err);
+    console.error("Entities fetch error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

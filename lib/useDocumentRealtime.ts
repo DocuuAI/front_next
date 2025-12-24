@@ -9,7 +9,7 @@ export function useDocumentsRealtime() {
 
   useEffect(() => {
     const socket = new WebSocket(
-      "wss://docuback-pw5d.onrender.com/ws/documents"
+      "wss://http://127.0.0.1:4000/ws/documents"
     );
 
     socket.onmessage = (event) => {

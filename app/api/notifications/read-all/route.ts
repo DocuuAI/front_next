@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export async function GET() {
+export async function PATCH() {
   try {
-    // 1️⃣ Get Clerk JWT
     const authData = await auth();
     const token = await authData.getToken();
 
@@ -11,32 +10,28 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2️⃣ Call backend
-    const backendRes = await fetch(
-      "http://127.0.0.1:4000/users/profile",
+    const res = await fetch(
+      "http://127.0.0.1:4000/notifications/read-all",
       {
-        method: "GET",
+        method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       }
     );
 
-    const data = await backendRes.json();
+    const data = await res.json();
 
-    if (!backendRes.ok) {
+    if (!res.ok) {
       return NextResponse.json(
-        { error: data.error || "Failed to fetch profile" },
-        { status: backendRes.status }
+        { error: data.error || "Failed to mark all notifications read" },
+        { status: res.status }
       );
     }
 
-    // 3️⃣ Return backend response
-    // Now data.profile should include entities + doc counts
     return NextResponse.json(data);
-
   } catch (err) {
-    console.error("Profile fetch error:", err);
+    console.error(err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

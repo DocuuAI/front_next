@@ -20,7 +20,7 @@ export async function GET(
   }
 
   const backendRes = await fetch(
-    `https://docuback-pw5d.onrender.com/entities/${id}`,
+    `http://127.0.0.1:4000/entities/${id}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -60,7 +60,7 @@ export async function DELETE(
   }
 
   const backendRes = await fetch(
-    `https://docuback-pw5d.onrender.com/entities/${id}`,
+    `http://127.0.0.1:4000/entities/${id}`,
     {
       method: "DELETE",
       headers: {

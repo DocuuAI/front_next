@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { useAppStore, useUnreadNotifications } from "@/contexts/AppContext";
+import { useAppStore } from "@/contexts/AppContext";
 
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
 
 /* ------------------ Variants (Typed) ------------------ */
 
@@ -55,9 +56,7 @@ export default function TopBar() {
   const { signOut } = useClerk();
   const { user } = useUser();
 
-  const unreadNotifications = useUnreadNotifications();
-  const unreadNotificationsCount = unreadNotifications.length;
-
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const avatarUrl = useAppStore((state) => state.avatarUrl);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
 
@@ -65,6 +64,25 @@ export default function TopBar() {
 
   /* 🔑 Animation controls for search focus */
   const searchControls = useAnimationControls();
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const notifications = data.notifications ?? [];
+
+        setUnreadNotificationsCount(
+          notifications.filter((n: any) => !n.read).length
+        );
+      } catch (err) {
+        console.error("Failed to fetch unread notifications", err);
+      }
+    };
+
+    fetchUnreadCount();
+  }, []);
 
   return (
     <motion.header
